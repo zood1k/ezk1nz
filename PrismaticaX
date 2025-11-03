@@ -107,7 +107,7 @@ local function GetTagColorForTheme(theme)
 end
 -- Add version tag
 local VersionTag = Window:Tag({
-    Title = "v2.1",
+    Title = "v2.2",
     Color = GetTagColorForTheme(currentTheme)
 })
 -- Add time tag
