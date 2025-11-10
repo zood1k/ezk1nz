@@ -179,7 +179,7 @@ local HalloweenEzka = Tabs.Halloween:Section({ Title = "HalloweenEzka", Opened =
 local EspSection = Tabs.Visual:Section({ Title = "Player ESP", Opened = true })
 local SettingsEspSection = Tabs.Visual:Section({ Title = "Settings ESP", Opened = true })
 local VisualEffectsSection = Tabs.Visual:Section({ Title = "Visual Effects", Opened = true })
-local WallVisionSection = Tabs.Visual:Section({ Title = "Wall Vision", Opened = true })
+local WallVisionSection = Tabs.Screen:Section({ Title = "Wall Vision", Opened = true })
 local AimbotSection = Tabs.Combat:Section({ Title = "Aimbot", Opened = true })
 local SilentAim = Tabs.Combat:Section({ Title = "Silent Aim", Opened = true })
 local MiscSection = Tabs.Misc:Section({ Title = "Misc", Opened = true })
