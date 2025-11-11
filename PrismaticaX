@@ -2870,20 +2870,6 @@ local function DisableAntiAFK()
     end
 end
 
-local antiAFKToggle = MiscSection:Toggle({
-    Title = "Anti AFK",
-    Value = true,
-    Callback = function(state)
-        _G.AntiAFKEnabled = state
-        if state then
-            EnableAntiAFK()
-        else
-            DisableAntiAFK()
-        end
-    end
-})
-_G.allToggles.AntiAFK = antiAFKToggle
-
 -- Rainbow FOV Effect
 function startRainbowFOV()
     if _G.rainbowConnection then _G.rainbowConnection:Disconnect() end
@@ -2993,6 +2979,18 @@ local antiFlingToggle = MiscSection:Toggle({
     end
 })
 _G.allToggles.AntiFling = antiFlingToggle
+local antiAfkToggle = MiscSection:Toggle({
+    Title = "Anti AFK",
+    Value = true,
+    Callback = function(state)
+        if state then
+            EnableAntiAFK()
+        else
+            DisableAntiAFK()
+        end
+    end
+})
+_G.allToggles.AntiAFK = antiAfkToggle
 
 -- Hitbox Loop
 function startHitboxLoop()
@@ -3178,6 +3176,17 @@ LocalPlayer.CharacterAdded:Connect(function()
                 _G.originalMaterials[obj] = obj.Material
                 obj.Material = Enum.Material.Plastic
             end
+        end
+    end
+end)
+
+-- Авто тогглы включенные
+task.spawn(function()
+    for name, toggle in pairs(_G.allToggles) do
+        if toggle.Value and toggle.Callback then
+            task.spawn(function()
+                pcall(toggle.Callback, true)
+            end)
         end
     end
 end)
