@@ -165,9 +165,9 @@ local Tabs = {
     Visual = Window:Tab({ Title = "Visual", Icon = "palette" }),
     Combat = Window:Tab({ Title = "Combat", Icon = "sword" }),
     FlingFeatures = Window:Tab({ Title = "Troll", Icon = "smile" }),
-    Misc = Window:Tab({ Title = "Misc", Icon = "box" }),
     Screen = Window:Tab({ Title = "Screen", Icon = "camera" }),
     Teleport = Window:Tab({ Title = "Teleport", Icon = "navigation" }),
+    Misc = Window:Tab({ Title = "Misc", Icon = "box" }),
     Settings = Window:Tab({ Title = "Settings", Icon = "settings" })
 }
 
