@@ -107,7 +107,7 @@ local function GetTagColorForTheme(theme)
 end
 -- Add version tag
 local VersionTag = Window:Tag({
-    Title = "v2.3",
+    Title = "v2.3.1",
     Color = GetTagColorForTheme(currentTheme)
 })
 -- Add time tag
@@ -312,8 +312,7 @@ _G.activeEffects = {}
 _G.originalMaterials = {}
 _G.speedConnection = nil
 _G.jumpConnection = nil
-
-
+_G.JumpDistancePower = 10
 
 -- Aimbot part selection
 local AimbotPart = "Head"
@@ -2814,38 +2813,48 @@ local fpsBoosterToggle = TexturesSection:Toggle({
     Value = false,
     Callback = function(state)
         if state then
+            _G.originalMaterials = _G.originalMaterials or {}
             for _, obj in pairs(workspace:GetDescendants()) do
                 if obj:IsA("BasePart") and not _G.originalMaterials[obj] then
                     _G.originalMaterials[obj] = obj.Material
                     obj.Material = Enum.Material.Plastic
                 end
             end
-            if not materialConnection then
-                materialConnection = workspace.DescendantAdded:Connect(function(obj)
+
+            if not _G.materialConnection then
+                _G.materialConnection = workspace.DescendantAdded:Connect(function(obj)
                     if obj:IsA("BasePart") and not _G.originalMaterials[obj] then
                         _G.originalMaterials[obj] = obj.Material
                         obj.Material = Enum.Material.Plastic
                     end
                 end)
             end
+
         else
-            for obj, mat in pairs(_G.originalMaterials) do
-                if obj and obj.Parent then
-                    obj.Material = mat
+            if _G.originalMaterials then
+                for obj, originalMat in pairs(_G.originalMaterials) do
+                    if obj and obj.Parent and obj:IsA("BasePart") then
+                        pcall(function()
+                            obj.Material = originalMat
+                        end)
+                    end
                 end
             end
+
             _G.originalMaterials = {}
-            if materialConnection then
-                materialConnection:Disconnect()
-                materialConnection = nil
+
+            if _G.materialConnection then
+                _G.materialConnection:Disconnect()
+                _G.materialConnection = nil
             end
         end
     end
 })
+
 _G.allToggles.FPSBooster = fpsBoosterToggle
 
 local function EnableAntiAFK()
-    if _G.antiAFKConnection then return end  -- Уже включено
+    if _G.antiAFKConnection then return end
     
     local VirtualUser = game:GetService('VirtualUser')
     _G.antiAFKConnection = game:GetService('Players').LocalPlayer.Idled:Connect(function()
@@ -3160,4 +3169,15 @@ TeleportSection:Button({
 setupAutoReapply()
 if _G.aimbotEnabled then Aimbot:ShowFov() end
 Window:OnClose(function()
+end)
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(2)
+    if _G.allToggles.FPSBooster and _G.allToggles.FPSBooster.Value then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and not _G.originalMaterials[obj] then
+                _G.originalMaterials[obj] = obj.Material
+                obj.Material = Enum.Material.Plastic
+            end
+        end
+    end
 end)
