@@ -64,9 +64,9 @@ local HitboxBlue = savedHitboxColor[3]
 -- Create main window with compact user display
 local Window = WindUi:CreateWindow({
     Title = "PrismaticaX",
-    Icon = "sparkles",
+    Icon = "crown",
     Author = "By @zood3llotgk",
-    Size = UDim2.fromOffset(400, 400),
+    Size = UDim2.fromOffset(300, 300),
     Theme = currentTheme,
     Acrylic = false,
     HideSearchBar = false,
@@ -107,7 +107,7 @@ local function GetTagColorForTheme(theme)
 end
 -- Add version tag
 local VersionTag = Window:Tag({
-    Title = "v2.3.1",
+    Title = "v2.3.2",
     Color = GetTagColorForTheme(currentTheme)
 })
 -- Add time tag
@@ -150,7 +150,7 @@ WindUi:OnThemeChange(UpdateTagColors)
 -- Tabs & Sections
 local MainSectionGroup = Window:Section({ 
     Title = "Main", 
-    Opened = true 
+    Opened = false 
 })
 
 -- Tabs & Sections
@@ -166,13 +166,13 @@ local Tabs = {
     Combat = Window:Tab({ Title = "Combat", Icon = "sword" }),
     FlingFeatures = Window:Tab({ Title = "Troll", Icon = "smile" }),
     Screen = Window:Tab({ Title = "Screen", Icon = "camera" }),
-    Teleport = Window:Tab({ Title = "Teleport", Icon = "navigation" }),
     Misc = Window:Tab({ Title = "Misc", Icon = "box" }),
     Settings = Window:Tab({ Title = "Settings", Icon = "settings" })
 }
 
 local MainSection = Tabs.Main:Section({ Title = "Main", Opened = true })
 local AboutSection = Tabs.About:Section({ Title = "About WindUI", Opened = true })
+local TargetSection = Tabs.FlingFeatures:Section({Title = "Target", Opened = true})
 local TexturesSection = Tabs.Screen:Section({ Title = "Textures", Opened = true })
 local CharacterPlayerSection = Tabs.CharacterPlayer:Section({ Title = "Character Player", Opened = true })
 local HalloweenEzka = Tabs.Halloween:Section({ Title = "HalloweenEzka", Opened = true })
@@ -184,9 +184,8 @@ local AimbotSection = Tabs.Combat:Section({ Title = "Aimbot", Opened = true })
 local SilentAim = Tabs.Combat:Section({ Title = "Silent Aim", Opened = true })
 local MiscSection = Tabs.Misc:Section({ Title = "Misc", Opened = true })
 local HitboxSection = Tabs.Combat:Section({ Title = "Hitbox", Opened = true })
-local FlingGuiSection = Tabs.FlingFeatures:Section({ Title = "Fling", Opened = true })
+local FlingGuiSection = Tabs.FlingFeatures:Section({ Title = "Troll", Opened = true })
 local InvisibilitySection = Tabs.FlingFeatures:Section({ Title = "Invisibility", Opened = true })
-local TeleportSection = Tabs.Teleport:Section({ Title = "Teleport to Players", Opened = true })
 local SettingsUiSection = Tabs.Settings:Section({ Title = "GUI Settings", Opened = true })
 local ThemesSection = Tabs.Settings:Section({ Title = "Customization", Opened = true })
 local ClearVisualSection = Tabs.Visual:Section({ Title = "Clear All Visual Effects", Opened = true })
@@ -232,8 +231,8 @@ Tabs.About:Button({
 })
 -- Main Tab
 MainSection:Button({
-    Title = "Welcome to PrismaticaX v2.0",
-    Icon = "",
+    Title = "Welcome to PrismaticaX",
+    Icon = "crown",
     Callback = function() end
 })
 local function UpdateServerStats()
@@ -328,6 +327,10 @@ _G.AntiFlingEnabled = false
 _G.antiFlingConnection = nil
 _G.flingRunning = false
 _G.flingNoclipConn = nil
+_G.antiFlingBV = nil
+_G.antiFlingAnimHook = nil
+_G.antiFlingStateHook = nil
+_G.antiFlingPlatformHook = nil
 -- Rainbow system
 _G.rainbowConnections = {}
 _G.activeEffects = {}
@@ -3155,15 +3158,30 @@ LocalPlayer.CharacterAdded:Connect(function()
         enableSilentAim()
     end
 end)
+local emotionsScriptLoaded = false
 
--- Буттон
-TeleportSection:Button({
-    Title = "Teleport to Random Player",
-    Icon = "navigation",
-    Callback = function()
-        _G.TeleportBehindRandomPlayer()
+task.spawn(function()
+    task.wait(1)  -- Ожидание гуи присматика
+    if _G.EmotesGUIRunning then
+        WindUi:Notify({
+            Title = "PrismaticaX",
+            Content = "Эмоции уже загружены!",
+            Icon = "info",
+            Duration = 3,
+        })
+        return
     end
-})
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/zood1k/FEemoties/main/FE%20Emoties"))()
+        WindUi:Notify({
+            Title = "PrismaticaX",
+            Content = "Получены все эмоции!",
+            Icon = "heart",
+            Duration = 5,
+        })
+    end)
+end)
+
 setupAutoReapply()
 if _G.aimbotEnabled then Aimbot:ShowFov() end
 Window:OnClose(function()
@@ -3176,9 +3194,429 @@ LocalPlayer.CharacterAdded:Connect(function()
                 _G.originalMaterials[obj] = obj.Material
                 obj.Material = Enum.Material.Plastic
             end
+  
+end      end
+    end
+)
+
+local SelectedFlingPlayers = {}
+local FlingMode = "Once"
+local FlingRunning = false
+local FlingButton = nil
+local ViewButton = nil
+local ViewingEnabled = false
+local SavedOldPos = nil
+local OriginalFPDH = workspace.FallenPartsDestroyHeight
+
+-- Мульти-дропдаун
+local FlingPlayerDropdown = TargetSection:Dropdown({
+    Title = "Select Players (Multi)",
+    Values = {},
+    Multi = true,
+    Value = {},
+    Callback = function(values)
+        SelectedFlingPlayers = {}
+        for _, name in ipairs(values or {}) do
+            local plr = Players:FindFirstChild(name)
+            if plr then table.insert(SelectedFlingPlayers, plr) end
         end
     end
-end)
+})
+
+local function UpdateFlingPlayerList()
+    local names = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then table.insert(names, plr.Name) end
+    end
+    table.sort(names)
+    FlingPlayerDropdown:Refresh(names)
+end
+Players.PlayerAdded:Connect(UpdateFlingPlayerList)
+Players.PlayerRemoving:Connect(UpdateFlingPlayerList)
+UpdateFlingPlayerList()
+-- Режим флинга
+TargetSection:Dropdown({
+    Title = "Fling Mode",
+    Values = {"Once", "Always"},
+    Value = "Once",
+    Callback = function(v) FlingMode = v end
+})
+
+-- Телепорт сзади
+TargetSection:Button({
+    Title = "Teleport Behind Selected",
+    Icon = "navigation",
+    Callback = function()
+        if #SelectedFlingPlayers == 0 then return end
+
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+
+        for _, plr in ipairs(SelectedFlingPlayers) do
+            local tRoot = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+            if tRoot then
+                local behindPos = tRoot.Position - tRoot.CFrame.LookVector * 1.5
+                myRoot.CFrame = CFrame.new(behindPos, tRoot.Position)
+                task.wait(0.05)
+            end
+        end
+    end
+})
+-- Полный сброс состояния персонажа + возврат (как в рабочей версии)
+local function FullCharacterResetAndReturn()
+    if not SavedOldPos then return end
+    local Character = LocalPlayer.Character
+    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+    local RootPart = Humanoid and Humanoid.RootPart
+    if not RootPart or not Humanoid then return end
+
+    for _, obj in pairs(Character:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            obj.Velocity = Vector3.new(0, 0, 0)
+            obj.RotVelocity = Vector3.new(0, 0, 0)
+        elseif obj:IsA("BodyVelocity") or obj:IsA("BodyAngularVelocity") or obj:IsA("BodyGyro") or obj:IsA("BodyPosition") then
+            obj:Destroy()
+        end
+    end
+
+    workspace.FallenPartsDestroyHeight = OriginalFPDH
+    workspace.CurrentCamera.CameraSubject = Humanoid
+
+    Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+    Humanoid.PlatformStand = false
+
+    repeat
+        RootPart.CFrame = SavedOldPos * CFrame.new(0, 0.5, 0)
+        Character:SetPrimaryPartCFrame(SavedOldPos * CFrame.new(0, 0.5, 0))
+        task.wait()
+    until (RootPart.Position - SavedOldPos.Position).Magnitude < 25
+
+    SavedOldPos = nil
+end
+
+-- SkidFling (полностью из рабочей версии)
+local function SkidFling(TargetPlayer)
+    local Character = LocalPlayer.Character
+    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+    local RootPart = Humanoid and Humanoid.RootPart
+    local TCharacter = TargetPlayer.Character
+    if not TCharacter or not RootPart then return end
+
+    local THumanoid = TCharacter:FindFirstChildOfClass("Humanoid")
+    local TRootPart = THumanoid and THumanoid.RootPart
+    local THead = TCharacter:FindFirstChild("Head")
+    local Accessory = TCharacter:FindFirstChildOfClass("Accessory")
+    local Handle = Accessory and Accessory:FindFirstChild("Handle")
+
+    if RootPart.Velocity.Magnitude < 50 and not SavedOldPos then
+        SavedOldPos = RootPart.CFrame
+    end
+
+    if THumanoid and THumanoid.Sit then return end
+
+    if THead then workspace.CurrentCamera.CameraSubject = THead
+    elseif Handle then workspace.CurrentCamera.CameraSubject = Handle
+    elseif THumanoid then workspace.CurrentCamera.CameraSubject = THumanoid end
+
+    local FPos = function(BasePart, Pos, Ang)
+        RootPart.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
+        Character:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
+        RootPart.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+        RootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+    end
+
+    local SFBasePart = function(BasePart)
+        local TimeToWait = 2.2
+        local Time = tick()
+        local Angle = 0
+        repeat
+            if FlingMode == "Always" and not FlingRunning then break end
+            if RootPart and THumanoid then
+                if BasePart.Velocity.Magnitude < 50 then
+                    Angle = Angle + 100
+                    FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle),0 ,0))
+                    task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                    task.wait()
+                    FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle),0 ,0))
+                    task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                    task.wait()
+                    FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection, CFrame.Angles(math.rad(Angle),0 ,0))
+                    task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection, CFrame.Angles(math.rad(Angle), 0, 0))
+                    task.wait()
+                else
+                    FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                    task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, -THumanoid.WalkSpeed), CFrame.Angles(0, 0, 0))
+                    task.wait()
+                    FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                    task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
+                    task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                    task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
+                    task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                    task.wait()
+                end
+            end
+        until tick() - Time >= TimeToWait or (FlingMode == "Always" and not FlingRunning)
+    end
+
+    workspace.FallenPartsDestroyHeight = 0/0
+
+    local BV = Instance.new("BodyVelocity", RootPart)
+    BV.Velocity = Vector3.zero
+    BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+
+    Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+
+    if TRootPart then SFBasePart(TRootPart)
+    elseif THead then SFBasePart(THead)
+    elseif Handle then SFBasePart(Handle)
+    end
+
+    BV:Destroy()
+    Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+    workspace.CurrentCamera.CameraSubject = Humanoid
+    workspace.FallenPartsDestroyHeight = OriginalFPDH
+end
+
+-- Кнопка Fling (полностью рабочая логика из вашего оригинала)
+FlingButton = TargetSection:Button({
+    Title = "Fling Selected Players (Start)",
+    Icon = "zap",
+    Callback = function()
+        if #SelectedFlingPlayers == 0 then return end
+
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+
+        SavedOldPos = myRoot.CFrame
+
+        if FlingMode == "Once" then
+            for _, plr in ipairs(SelectedFlingPlayers) do
+                if plr.Character then SkidFling(plr) end
+            end
+            FullCharacterResetAndReturn()
+
+        else
+            if FlingRunning then
+                FlingRunning = false
+                FlingButton:SetTitle("Fling Selected Players (Start)")
+                task.wait(0.8)
+                FullCharacterResetAndReturn()
+                return
+            end
+
+            FlingRunning = true
+            FlingButton:SetTitle("Fling Selected Players (Stop)")
+
+            spawn(function()
+                while FlingRunning and #SelectedFlingPlayers > 0 do
+                    for _, plr in ipairs(SelectedFlingPlayers) do
+                        if not FlingRunning then break end
+                        if plr.Character then
+                            SkidFling(plr)
+                            task.wait(0.1)
+                        end
+                    end
+                    task.wait(0.4)
+                end
+                FlingRunning = false
+                FlingButton:SetTitle("Fling Selected Players (Start)")
+                FullCharacterResetAndReturn()
+            end)
+        end
+    end
+})
+
+-- ЕДИНАЯ КНОПКА VIEW (On/Off)
+ViewButton = TargetSection:Button({
+    Title = "View First Selected (Off)",
+    Icon = "eye-off",
+    Callback = function()
+        if #SelectedFlingPlayers == 0 then return end
+
+        if ViewingEnabled then
+            -- Выключаем
+            local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if hum then
+                workspace.CurrentCamera.CameraSubject = hum
+            end
+            ViewingEnabled = false
+            ViewButton:SetTitle("View First Selected (Off)")
+            ViewButton:SetIcon("eye-off")
+        else
+            -- Включаем
+            local target = SelectedFlingPlayers[1].Character
+            if target then
+                local subj = target:FindFirstChild("Head") or target:FindFirstChildOfClass("Humanoid")
+                if subj then
+                    workspace.CurrentCamera.CameraSubject = subj
+                end
+            end
+            ViewingEnabled = true
+            ViewButton:SetTitle("View First Selected (On)")
+            ViewButton:SetIcon("eye")
+        end
+    end
+})
+_G.FlingWasRunning = true
+_G.FlingWasRunning = false
+
+local RandomTpMode = "Single"      -- режим по умолчанию
+local RandomTpRunning = false      -- флаг спама
+local RandomTpButton = nil         -- ссылка на кнопку
+
+-- Отдельный дропдаун режима
+FlingGuiSection:Dropdown({  -- или TargetSection
+    Title = "Random Teleport Mode",
+    Values = {"Single (One Time)", "Spam (Every 1 Sec)"},
+    Value = "Single (One Time)",
+    Callback = function(value)
+        RandomTpMode = (value == "Spam (Every 1 Sec)") and "Spam" or "Single"
+    end
+})
+
+-- Стабильная функция телепорта (работает даже с Fly, Noclip и т.д.)
+local function StableRandomTeleport()
+    local players = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(players, plr)
+        end
+    end
+    if #players == 0 then return end
+
+    local target = players[math.random(1, #players)]
+    local tRoot = target.Character.HumanoidRootPart
+    local myChar = LocalPlayer.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
+
+    local myRoot = myChar.HumanoidRootPart
+
+    -- Позиция за спиной
+    local behind = tRoot.Position - tRoot.CFrame.LookVector * 1.5
+    local targetCf = CFrame.new(behind, tRoot.Position)
+
+    -- Самый надёжный способ телепорта
+    myRoot.CFrame = targetCf
+
+    -- Дополнительно: принудительный импульс (на случай PlatformStand или BodyMovers)
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    bv.Velocity = Vector3.new(0, 0, 0)
+    bv.Parent = myRoot
+    task.delay(0.1, function()
+        if bv and bv.Parent then bv:Destroy() end
+    end)
+
+    -- Если Fly включён — перезапускаем его (чтобы не застревать)
+    if _G.FlyEnabled then
+        task.wait(0.1)
+        flyToggle:Set(false)
+        task.wait(0.2)
+        flyToggle:Set(true)
+    end
+end
+
+local function EnableAntiFling()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not root or not hum then return end
+
+    -- Уничтожаем старые BodyMovers
+    for _, obj in pairs(root:GetChildren()) do
+        if obj:IsA("BodyVelocity") or obj:IsA("BodyAngularVelocity") or obj:IsA("BodyPosition") then
+            obj:Destroy()
+        end
+    end
+
+    -- Основной BodyVelocity с Inf силой (перезаписывает всё)
+    _G.antiFlingBV = Instance.new("BodyVelocity")
+    _G.antiFlingBV.MaxForce = Vector3.new(math.huge, 0, math.huge)  -- Только X/Z, Y свободный для прыжков
+    _G.antiFlingBV.Velocity = Vector3.new(0, 0, 0)
+    _G.antiFlingBV.Parent = root
+
+    -- Основной цикл (Heartbeat — высший приоритет)
+    _G.antiFlingConnection = RunService.Heartbeat:Connect(function()
+        if root.Parent and hum.Parent then
+            root.Velocity = Vector3.new(0, root.Velocity.Y, 0)
+            root.RotVelocity = Vector3.new(0, 0, 0)
+            hum.PlatformStand = false
+            hum.JumpPower = _G.OriginalJumpPower or 50  -- Сброс прыжка
+            if _G.antiFlingBV then
+                _G.antiFlingBV.Velocity = Vector3.new(0, 0, 0)
+            end
+        end
+    end)
+
+    -- Хук на все анимации (эмоции, позы)
+    local animator = hum:WaitForChild("Animator", 1)
+    if animator then
+        _G.antiFlingAnimHook = animator.AnimationPlayed:Connect(function()
+            task.wait(0.05)
+            root.Velocity = Vector3.new(0, root.Velocity.Y, 0)
+            root.RotVelocity = Vector3.new(0, 0, 0)
+        end)
+    end
+
+    -- Хук на смену состояния Humanoid (эмоции меняют State)
+    _G.antiFlingStateHook = hum:GetPropertyChangedSignal("Jump"):Connect(function()
+        task.wait(0.01)
+        hum.PlatformStand = false
+    end)
+
+    -- Хук на PlatformStand (эмоции часто его включают)
+    _G.antiFlingPlatformHook = hum:GetPropertyChangedSignal("PlatformStand"):Connect(function()
+        if hum.PlatformStand then
+            hum.PlatformStand = false
+        end
+    end)
+end
+
+local function DisableAntiFling()
+    if _G.antiFlingConnection then _G.antiFlingConnection:Disconnect() _G.antiFlingConnection = nil end
+    if _G.antiFlingAnimHook then _G.antiFlingAnimHook:Disconnect() _G.antiFlingAnimHook = nil end
+    if _G.antiFlingStateHook then _G.antiFlingStateHook:Disconnect() _G.antiFlingStateHook = nil end
+    if _G.antiFlingPlatformHook then _G.antiFlingPlatformHook:Disconnect() _G.antiFlingPlatformHook = nil end
+    if _G.antiFlingBV then _G.antiFlingBV:Destroy() _G.antiFlingBV = nil end
+end
+
+-- Основная кнопка
+RandomTpButton = FlingGuiSection:Button({  -- или TargetSection
+    Title = "Teleport To Random Player",
+    Icon = "navigation",
+    Callback = function()
+        if RandomTpMode == "Spam" then
+            if RandomTpRunning then
+                RandomTpRunning = false
+                RandomTpButton:SetTitle("Teleport To Random Player")
+                RandomTpButton:SetIcon("navigation")
+            else
+                RandomTpRunning = true
+                RandomTpButton:SetTitle("Teleport To Random Player (STOP)")
+                RandomTpButton:SetIcon("x")
+
+                spawn(function()
+                    while RandomTpRunning do
+                        StableRandomTeleport()
+                        local start = tick()
+                        repeat task.wait() until tick() - start >= 1  -- точная 1 секунда
+                    end
+                end)
+            end
+        else
+            StableRandomTeleport()
+        end
+    end
+})
 
 -- Авто тогглы включенные
 task.spawn(function()
