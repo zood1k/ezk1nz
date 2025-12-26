@@ -160,7 +160,7 @@ local Tabs = {
     About = MainSectionGroup:Tab({ Title = "About WindUI", Icon = "info" }),
     
     -- Остальные табы как обычно
-    Halloween = Window:Tab({ Title = "Halloween", Icon = "ghost" }),
+    Events = Window:Tab({ Title = "Events", Icon = "ghost" }),
     CharacterPlayer = Window:Tab({ Title = "Character", Icon = "user" }),
     Visual = Window:Tab({ Title = "Visual", Icon = "palette" }),
     Combat = Window:Tab({ Title = "Combat", Icon = "sword" }),
@@ -175,7 +175,7 @@ local AboutSection = Tabs.About:Section({ Title = "About WindUI", Opened = true 
 local TargetSection = Tabs.FlingFeatures:Section({Title = "Target", Opened = true})
 local TexturesSection = Tabs.Screen:Section({ Title = "Textures", Opened = true })
 local CharacterPlayerSection = Tabs.CharacterPlayer:Section({ Title = "Character Player", Opened = true })
-local HalloweenEzka = Tabs.Halloween:Section({ Title = "HalloweenEzka", Opened = true })
+local HalloweenSection = Tabs.Events:Section({ Title = "Halloween", Opened = true })
 local EspSection = Tabs.Visual:Section({ Title = "Player ESP", Opened = true })
 local SettingsEspSection = Tabs.Visual:Section({ Title = "Settings ESP", Opened = true })
 local VisualEffectsSection = Tabs.Visual:Section({ Title = "Visual Effects", Opened = true })
@@ -2386,12 +2386,17 @@ local sparkleBodyToggle = VisualEffectsSection:Toggle({
     end
 })
 _G.allToggles.SparkleBody = sparkleBodyToggle
-HalloweenEzka:Button({
+HalloweenSection:Button({
     Title = "Load Halloween Script",
     Icon = "ghost",
     Callback = function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/zood1k/PrXHalloWeen/main/PrXhwEdition"))()
-        WindUi:Notify({Title = "Halloween", Content = "Script Loaded Successfully", Icon = "check", Duration = 3})
+        WindUi:Notify({
+            Title = "Halloween", 
+            Content = "Script Loaded Successfully", 
+            Icon = "check", 
+            Duration = 3
+        })
     end
 })
 
