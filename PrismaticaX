@@ -107,7 +107,7 @@ local function GetTagColorForTheme(theme)
 end
 -- Add version tag
 local VersionTag = Window:Tag({
-    Title = "v2.3.2",
+    Title = "v2.3.3",
     Color = GetTagColorForTheme(currentTheme)
 })
 -- Add time tag
@@ -176,6 +176,7 @@ local TargetSection = Tabs.FlingFeatures:Section({Title = "Target", Opened = tru
 local TexturesSection = Tabs.Screen:Section({ Title = "Textures", Opened = true })
 local CharacterPlayerSection = Tabs.CharacterPlayer:Section({ Title = "Character Player", Opened = true })
 local HalloweenSection = Tabs.Events:Section({ Title = "Halloween", Opened = true })
+local NewYearSection = Tabs.Events:Section({ Title = "New Year", Opened = true })
 local EspSection = Tabs.Visual:Section({ Title = "Player ESP", Opened = true })
 local SettingsEspSection = Tabs.Visual:Section({ Title = "Settings ESP", Opened = true })
 local VisualEffectsSection = Tabs.Visual:Section({ Title = "Visual Effects", Opened = true })
@@ -3633,3 +3634,13 @@ task.spawn(function()
         end
     end
 end)
+
+NewYearSection:Button({
+    Title = "Load New Year Effects",
+    Icon = "gift",
+    Callback = function()
+        pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/zood1k/PrismaticaX-New-Year/main/PrismatikaNewYear"))()
+        end)
+    end
+})
