@@ -1604,7 +1604,9 @@ local highlightEspToggle = EspSection:Toggle({
     Value = false,
     Callback = function(state)
         _G.highlightEspEnabled = state
-        if state then _G.HighlightEsp:EnableEsp() else _G.HighlightEsp:DisableEsp() end
+        if _G.HighlightEsp and _G.HighlightEsp.EnableEsp and _G.HighlightEsp.DisableEsp then
+            if state then _G.HighlightEsp:EnableEsp() else _G.HighlightEsp:DisableEsp() end
+        end
     end
 })
 _G.allToggles.HighlightESP = highlightEspToggle
@@ -1613,7 +1615,9 @@ local nameEspToggle = EspSection:Toggle({
     Value = false,
     Callback = function(state)
         _G.nameEspEnabled = state
-        if state then _G.NameEsp:EnableEsp() else _G.NameEsp:DisableEsp() end
+        if _G.NameEsp and _G.NameEsp.EnableEsp and _G.NameEsp.DisableEsp then
+            if state then _G.NameEsp:EnableEsp() else _G.NameEsp:DisableEsp() end
+        end
     end
 })
 _G.allToggles.NameESP = nameEspToggle
@@ -1622,7 +1626,9 @@ local distanceEspToggle = EspSection:Toggle({
     Value = false,
     Callback = function(state)
         _G.distanceEspEnabled = state
-        if state then _G.DistanceEsp:EnableEsp() else _G.DistanceEsp:DisableEsp() end
+        if _G.DistanceEsp and _G.DistanceEsp.EnableEsp and _G.DistanceEsp.DisableEsp then
+            if state then _G.DistanceEsp:EnableEsp() else _G.DistanceEsp:DisableEsp() end
+        end
     end
 })
 _G.allToggles.DistanceESP = distanceEspToggle
@@ -1631,15 +1637,15 @@ local espTeamCheckToggle = EspSection:Toggle({
     Value = false,
     Callback = function(state)
         _G.EspTeamCheckEnabled = state
-        if _G.highlightEspEnabled then
+        if _G.highlightEspEnabled and _G.HighlightEsp and _G.HighlightEsp.DisableEsp and _G.HighlightEsp.EnableEsp then
             _G.HighlightEsp:DisableEsp()
             _G.HighlightEsp:EnableEsp()
         end
-        if _G.nameEspEnabled then
+        if _G.nameEspEnabled and _G.NameEsp and _G.NameEsp.DisableEsp and _G.NameEsp.EnableEsp then
             _G.NameEsp:DisableEsp()
             _G.NameEsp:EnableEsp()
         end
-        if _G.distanceEspEnabled then
+        if _G.distanceEspEnabled and _G.DistanceEsp and _G.DistanceEsp.DisableEsp and _G.DistanceEsp.EnableEsp then
             _G.DistanceEsp:DisableEsp()
             _G.DistanceEsp:EnableEsp()
         end
